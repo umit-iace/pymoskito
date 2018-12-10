@@ -19,6 +19,8 @@ from .simulation_gui import *
 from .simulation_modules import *
 from .generic_simulation_modules import *
 
+from .binding_modules import *
+
 from .tools import *
 from .controltools import *
 from .visualization import *

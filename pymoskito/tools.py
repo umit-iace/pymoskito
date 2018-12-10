@@ -7,15 +7,11 @@ import logging
 import os
 import re
 
-import subprocess
-import pybind11
-
 import numpy as np
-from PyQt5.QtGui import QColor
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["rotation_matrix_xyz", "get_resource", "generate_binding"]
+__all__ = ["rotation_matrix_xyz", "get_resource"]
 
 
 def sort_lists(a, b):
@@ -268,111 +264,3 @@ def get_figure_size(scale):
     fig_height = fig_width * golden_ratio  # height in inches
     fig_size = [fig_width, fig_height]
     return fig_size
-
-def generate_binding(module_name, module_path):
-    src_path = os.path.join(os.path.dirname(module_path), "binding")
-    module_inc_path = os.path.join(src_path, module_name + ".h")
-    module_src_path = os.path.join(src_path, module_name + ".cpp")
-
-    pybind_path = os.path.join(os.path.dirname(__file__),
-                               os.pardir,
-                               "libs",
-                               "pybind11")
-    c_make_lists_path = os.path.join(src_path, 'CMakeLists.txt')
-
-    # check if folder exists
-    if not os.path.isdir(src_path):
-        logger.error("Dir binding not available in project folder '{}'"
-                     "".format(os.getcwd()))
-        return
-
-    if not os.path.exists(module_inc_path):
-        logger.error("Module '{}'.h could not found in binding folder"
-                     "".format(module_inc_path))
-        return
-
-    if not os.path.exists(module_inc_path):
-        logger.error("Module '{}'.h could not found in binding folder"
-                     "".format(module_src_path))
-        return
-
-    if not os.path.exists(c_make_lists_path):
-        logger.warning("No CMakeLists.txt found!")
-        logger.info("Generating new CMake config.")
-        create_cmake_lists(c_make_lists_path, pybind_path, module_name)
-
-    add_binding_config(c_make_lists_path, module_name)
-
-    # build
-    if os.name == 'nt':
-        result = subprocess.run(['cmake', '-A', 'x64', '.'],
-                                cwd=src_path,
-                                shell=True)
-        if result.returncode == 0:
-            result = subprocess.run(
-                ['cmake', '--build', '.', '--config', 'Release'],
-                cwd=src_path,
-                shell=True)
-    else:
-        result = subprocess.run(['cmake . && make'], cwd=src_path, shell=True)
-
-    if result.returncode != 0:
-        logger.error("Build failed.")
-
-
-def add_binding_config(cmake_lists_path, module_name):
-    """
-    Add the module config to the cmake lists.
-
-    Args:
-        cmake_lists_path(str): Path to `CmakeLists.txt`.
-        module_name(str): Name of module to add.
-    """
-    config_line = "pybind11_add_module({} {} {})".format(
-        module_name,
-        module_name + '.cpp',
-        'binding_' + module_name + '.cpp')
-
-    with open(cmake_lists_path, "r") as f:
-        if config_line in f.read():
-            return
-
-    logger.info("Appending build info for '{}'".format(module_name))
-    with open(cmake_lists_path, "a") as f:
-        f.write("\n")
-        f.write(config_line)
-
-
-def create_cmake_lists(cmake_lists_path, pybind_dir, project_name="cpp_bindings"):
-    """
-    Create the stub of a `CMakeLists.txt` .
-
-    Args:
-        cmake_lists_path(str): Path to `CmakeLists.txt`.
-        pybind_dir(str): Path of the pybind checkout.
-        project_name(str): Name of cmake project.
-
-    Returns:
-
-    """
-    c_make_lists = "cmake_minimum_required(VERSION 2.8.12)\n"
-    c_make_lists += "project({})\n\n".format(project_name)
-
-    c_make_lists += "set( CMAKE_RUNTIME_OUTPUT_DIRECTORY . )\n"
-    c_make_lists += "set( CMAKE_LIBRARY_OUTPUT_DIRECTORY . )\n"
-    c_make_lists += "set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY . )\n\n"
-
-    c_make_lists += "foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )\n"
-    c_make_lists += "\tstring( TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG )\n"
-    c_make_lists += "\tset( CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} . )\n"
-    c_make_lists += "\tset( CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} . )\n"
-    c_make_lists += "\tset( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} . )\n"
-    c_make_lists += "endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )\n\n"
-
-    # TODO get pybind install via pip running and use this line:
-    # c_make_lists += "find_package(pybind11)"
-    c_make_lists += "add_subdirectory({} pybind11)\n".format(pybind_dir)
-
-    with open(cmake_lists_path, "w") as f:
-        f.write(c_make_lists)
-
