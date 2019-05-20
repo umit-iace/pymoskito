@@ -7,7 +7,7 @@ import numpy as np
 import pymoskito as pm
 
 
-class PIDController(pm.Controller):
+class CppPIDController(pm.Controller, pm.CppBase):
     """
     PID Controller implemented in cpp with pybind11
     """
@@ -19,7 +19,6 @@ class PIDController(pm.Controller):
         ("output_limits", [0, 255]),
         ("input_state", [0]),
         ("tick divider", 1),
-        ("Module", 'Controller'),
     ])
 
     def __init__(self, settings):
@@ -28,21 +27,21 @@ class PIDController(pm.Controller):
         settings.update(output_dim=1)
         settings.update(input_type="system_state")
 
-        super().__init__(settings)
+        pm.Controller.__init__(self, settings)
+        pm.CppBase.__init__(self,
+                            module_name='PIDController',
+                            module_path=__file__)
 
         self.lastTime = 0
         self.lastU = 0
-        try:
-            from binding.Controller import PIDController
-            self.pid = PIDController()
-            self.pid.create(self._settings["Kp"],
+
+        pidClass = self.get_class_from_module('PIDController')
+        self.pid = pidClass(self._settings["Kp"],
                             self._settings["Ti"],
                             self._settings["Td"],
                             self._settings["output_limits"][0],
                             self._settings["output_limits"][1],
                             self._settings['dt'])
-        except ImportError as e:
-            self._logger.error('Can not load Controller module! {}'.format(e))
 
     def _control(self,
                  time,
@@ -73,5 +72,4 @@ class PIDController(pm.Controller):
         return u
 
 
-pm.generate_binding(PIDController.__name__, __file__)
-pm.register_simulation_module(pm.Controller, PIDController)
+pm.register_simulation_module(pm.Controller, CppPIDController)

@@ -11,6 +11,14 @@
  * @brief Base controller class that can used to derived a P, PI, PD or PID controller.
  */
 class Controller {
+protected:
+    // properties
+    double dKp = 1.0;               ///< Gain value for the proportional part
+    double dTi = 1.0;               ///< Time value for the integral part
+    double dTd = 1.0;               ///< Time value for the derivation part
+    double dOutputMin = -255.0;     ///< Minimal value for the calculated output
+    double dOutputMax = 255.0;      ///< Maximal value for the calculated output
+    double dSampleTime = 0.0;       ///< Sample time of the controller
 public:
     /**
      * @brief Method that sets the gain value of the proportional part
@@ -41,7 +49,7 @@ public:
     double getSampleTime() const { return dSampleTime; }
 
     /**
-     * method the computes the controller output of the current time step for the given input value and setpoint
+     * @brief Method the computes the controller output of the current time step for the given input value and setpoint
      *
      * @param current input value
      * @param current setpoint
@@ -51,35 +59,9 @@ public:
                            const double &dCurSetpoint) = 0;
 
     /**
-     * @ brief Method that sets the initial values of the PID controller and resets the integral and last error part to zero
-     *
-     * @param Gain value for the proportional part
-     * @param Time value for the integral part
-     * @param Time value for the derivation part
-     * @param Mininal value for the calculated output
-     * @param Maximal value for the calculated output
-     * @param Sample time of the controller
-     */
-    virtual void create(const double &dKp,
-                        const double &dTi,
-                        const double &dTd,
-                        const double &dOutputMin,
-                        const double &dOutputMax,
-                        const double &dSampleTime) = 0;
-
-    /**
      * @brief Method that resets the integral and last error part to zero
      */
     virtual void reset() = 0;
-
-protected:
-    // properties
-    double dKp = 1.0;               ///< Gain value for the proportional part
-    double dTi = 1.0;               ///< Time value for the integral part
-    double dTd = 1.0;               ///< Time value for the derivation part
-    double dOutputMin = -255.0;     ///< Mininal value for the calculated output
-    double dOutputMax = 255.0;      ///< Maximal value for the calculated output
-    double dSampleTime = 0.0;       ///< Sample time of the controller
 };
 
 #endif // CONTROLLER_H
