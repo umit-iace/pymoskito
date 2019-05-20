@@ -7,7 +7,6 @@ import logging
 import os
 import re
 import subprocess
-import pybind11
 
 import numpy as np
 from PyQt5.QtGui import QColor
