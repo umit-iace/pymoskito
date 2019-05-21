@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import os
 from collections import OrderedDict
 
 import numpy as np
-
 import pymoskito as pm
 
 
@@ -30,18 +30,17 @@ class CppPIDController(pm.Controller, pm.CppBase):
         pm.Controller.__init__(self, settings)
         pm.CppBase.__init__(self,
                             module_name='PIDController',
-                            module_path=__file__)
+                            module_path=os.path.dirname(__file__) + '/binding')
 
         self.lastTime = 0
         self.lastU = 0
 
-        pidClass = self.get_class_from_module('PIDController')
-        self.pid = pidClass(self._settings["Kp"],
-                            self._settings["Ti"],
-                            self._settings["Td"],
-                            self._settings["output_limits"][0],
-                            self._settings["output_limits"][1],
-                            self._settings['dt'])
+        self.pid = self.get_class_from_module().PIDController(self._settings["Kp"],
+                                                              self._settings["Ti"],
+                                                              self._settings["Td"],
+                                                              self._settings["output_limits"][0],
+                                                              self._settings["output_limits"][1],
+                                                              self._settings['dt'])
 
     def _control(self,
                  time,

@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import os
 from collections import OrderedDict
 
 import numpy as np
-
 import pymoskito as pm
+
 from . import settings as st
 
 
@@ -33,16 +34,15 @@ class CppHighGainObserver(pm.Observer, pm.CppBase):
         pm.Observer.__init__(self, settings)
         pm.CppBase.__init__(self,
                             module_name='HighGainObserver',
-                            module_path=__file__)
+                            module_path=os.path.dirname(__file__) + '/binding')
 
-        obsClass = self.get_class_from_module('HighGainObserver')
-        self.obs = obsClass(self._settings["AT1"],
-                            self._settings["AT2"],
-                            self._settings["AS1"],
-                            self._settings["AS2"],
-                            self._settings["Ku"],
-                            self._settings["uA0"],
-                            self._settings['dt'])
+        self.obs = self.get_class_from_module().HighGainObserver(self._settings["AT1"],
+                                                                 self._settings["AT2"],
+                                                                 self._settings["AS1"],
+                                                                 self._settings["AS2"],
+                                                                 self._settings["Ku"],
+                                                                 self._settings["uA0"],
+                                                                 self._settings['dt'])
         self.obs.setInitialState(np.array(self._settings["initial state"]))
         self.obs.setGain(np.array(self._settings["poles"]))
 
