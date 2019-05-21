@@ -1,7 +1,7 @@
+import importlib.util
 import logging
 import os
 import subprocess
-import importlib
 
 from PyQt5.QtCore import QObject
 
@@ -29,13 +29,13 @@ class CppBase(QObject):
         if module_path is None:
             raise BindingException("Instantiation of binding class without"
                                    " module_path is not allowed!")
-        self.module_path = module_name
+        self.module_path = module_path
 
         self.src_path = os.path.join(os.path.dirname(self.module_path),
                                      "binding")
-        self.module_inc_path = os.path.join(self.src_path,
+        self.module_inc_path = os.path.join(self.module_path,
                                             self.module_name + ".h")
-        self.module_src_path = os.path.join(self.src_path,
+        self.module_src_path = os.path.join(self.module_path,
                                             self.module_name + ".cpp")
 
         self.pybind_path = os.path.join(os.path.dirname(__file__),
@@ -43,25 +43,25 @@ class CppBase(QObject):
                                         "pybind11")
         self.cmake_lists_path = os.path.join(self.src_path, 'CMakeLists.txt')
 
-        self.create_binding_config()
-        self.build_binding()
+        if self.create_binding_config():
+            self.build_binding()
 
     def create_binding_config(self):
         # check if folder exists
         if not os.path.isdir(self.src_path):
             self._logger.error("Dir binding not available in project folder '{}'"
                                "".format(os.getcwd()))
-            return
+            return False
 
         if not os.path.exists(self.module_inc_path):
-            self._logger.error("Module '{}'.h could not found in binding folder"
+            self._logger.error("Module '{}' could not found in binding folder"
                                "".format(self.module_inc_path))
-            return
+            return False
 
         if not os.path.exists(self.module_inc_path):
-            self._logger.error("Module '{}'.h could not found in binding folder"
-                               "".format(self.module_src_path))
-            return
+            self._logger.error("Module '{}' could not found in binding folder"
+                               "".format(self.module_inc_path))
+            return False
 
         if not os.path.exists(self.cmake_lists_path):
             self._logger.warning("No CMakeLists.txt found!")
@@ -71,6 +71,8 @@ class CppBase(QObject):
         config_changed = self.update_binding_config()
         if config_changed:
             self.build_config()
+
+        return True
 
     def build_config(self):
         # generate config
@@ -106,17 +108,27 @@ class CppBase(QObject):
         """
         config_line = "pybind11_add_module({} {} {})".format(
             self.module_name,
-            self.module_name + '.cpp',
+            self.module_src_path,
             'binding_' + self.module_name + '.cpp')
+
+        target_config_line = "set_target_properties({} PROPERTIES OUTPUT_NAME \"{}\" SUFFIX \".so\")".format(
+            self.module_name,
+            self.module_name)
 
         with open(self.cmake_lists_path, "r") as f:
             if config_line in f.read():
+                return False
+
+        with open(self.cmake_lists_path, "r") as f:
+            if target_config_line in f.read():
                 return False
 
         self._logger.info("Appending build info for '{}'".format(self.module_name))
         with open(self.cmake_lists_path, "a") as f:
             f.write("\n")
             f.write(config_line)
+            f.write("\n")
+            f.write(target_config_line)
 
         return True
 
@@ -141,17 +153,18 @@ class CppBase(QObject):
         c_make_lists += "\tset( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} . )\n"
         c_make_lists += "endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )\n\n"
 
-        # TODO get pybind install via pip running and use this line:
-        # c_make_lists += "find_package(pybind11)"
         c_make_lists += "add_subdirectory({} pybind11)\n".format(self.pybind_path)
 
         with open(self.cmake_lists_path, "w") as f:
             f.write(c_make_lists)
 
-    def get_class_from_module(self, class_name):
+    def get_class_from_module(self):
         try:
-            module = importlib.import_module("binding." + self.module_name)
-            return getattr(module, class_name)
+            spec = importlib.util.spec_from_file_location(self.module_name,
+                                                          os.path.join(self.src_path, self.module_name + '.so'))
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return module
         except ImportError as e:
             self._logger.error("Cannot load module: {}".format(e))
             raise e
