@@ -10,6 +10,7 @@ import subprocess
 
 import numpy as np
 from PyQt5.QtGui import QColor
+from pyqtgraph.dockarea import Dock
 
 logger = logging.getLogger(__name__)
 
@@ -430,3 +431,9 @@ class CSVExporter(object):
 
             fd.write('\n')
         fd.close()
+
+
+class PinnedDock(Dock):
+    def __init__(self, *args):
+        super(PinnedDock, self).__init__(*args)
+        self.label.mouseDoubleClickEvent = lambda event: event.ignore()

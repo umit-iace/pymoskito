@@ -50,7 +50,7 @@ from .registry import get_registered_visualizers
 from .simulation_interface import SimulatorInteractor, SimulatorView
 from .visualization import MplVisualizer, VtkVisualizer
 from .processing_gui import PostProcessor
-from .tools import get_resource, PlainTextLogger, LengthList, CSVExporter
+from .tools import get_resource, PlainTextLogger, LengthList, CSVExporter, PinnedDock
 
 __all__ = ["SimulationGui", "run"]
 
@@ -139,12 +139,12 @@ class SimulationGui(QMainWindow):
         self.setWindowIcon(icon)
 
         # create docks
-        self.propertyDock = pg.dockarea.Dock("Properties")
-        self.animationDock = pg.dockarea.Dock("Animation")
-        self.regimeDock = pg.dockarea.Dock("Regimes")
-        self.lastSimDock = pg.dockarea.Dock("Last Simulations")
-        self.dataDock = pg.dockarea.Dock("Data")
-        self.logDock = pg.dockarea.Dock("Log")
+        self.propertyDock = PinnedDock("Properties")
+        self.animationDock = PinnedDock("Animation")
+        self.regimeDock = PinnedDock("Regimes")
+        self.lastSimDock = PinnedDock("Last Simulations")
+        self.dataDock = PinnedDock("Data")
+        self.logDock = PinnedDock("Log")
 
         # arrange docks
         self.area.addDock(self.animationDock, "right")
