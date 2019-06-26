@@ -1247,7 +1247,12 @@ class SimulationGui(QMainWindow):
         # update state of rendering
         if self.visualizer:
             state = self.interpolator(self.playbackTime)
-            self.visualizer.update_scene(state)
+
+            try:
+                self.visualizer.update_scene(state)
+            except Exception:
+                pass
+
             if isinstance(self.visualizer, MplVisualizer):
                 pass
             elif isinstance(self.visualizer, VtkVisualizer):
