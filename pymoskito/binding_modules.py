@@ -142,6 +142,8 @@ class CppBase(QObject):
         c_make_lists = "cmake_minimum_required(VERSION 2.8.12)\n"
         c_make_lists += "project({})\n\n".format(self.module_name)
 
+        c_make_lists += "find_package(PythonLibs REQUIRED)\n\n"
+
         c_make_lists += "set( CMAKE_RUNTIME_OUTPUT_DIRECTORY . )\n"
         c_make_lists += "set( CMAKE_LIBRARY_OUTPUT_DIRECTORY . )\n"
         c_make_lists += "set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY . )\n\n"
