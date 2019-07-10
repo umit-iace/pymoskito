@@ -12,6 +12,10 @@ import pkg_resources
 import pyqtgraph as pg
 import webbrowser
 import yaml
+try:
+    from yaml import CLoader as Loader, CDumper as Dumper
+except ImportError:
+    from yaml import Loader, Dumper
 # Qt
 from PyQt5.QtCore import (pyqtSignal, pyqtSlot, Qt, QTimer, QSize, QSettings,
                           QCoreApplication, QModelIndex, QRectF)
@@ -958,7 +962,7 @@ class SimulationGui(QMainWindow):
         self.regime_file_name = os.path.split(file_name)[-1][:-5]
         self._logger.info("loading regime file: {0}".format(self.regime_file_name))
         with open(file_name.encode(), "r") as f:
-            self._regimes += yaml.load(f)
+            self._regimes += yaml.load(f, Loader=Loader)
 
         self._update_regime_list()
 
