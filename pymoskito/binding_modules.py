@@ -161,7 +161,7 @@ class CppBase(QObject):
     def get_class_from_module(self):
         try:
             spec = importlib.util.spec_from_file_location(self.module_name,
-                                                          self.src_path_old / str(self.module_name + '.so'))
+                                                          self.src_path / str(self.module_name + '.so'))
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
             return module
