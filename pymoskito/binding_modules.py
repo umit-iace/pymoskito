@@ -38,7 +38,7 @@ class CppBase(QObject):
 
         self.module_src_path = self.module_path / str(self.module_name + '.cpp')
 
-        self.pybind_path = Path(os.path.dirname(__file__)) / "libs" / "pybind11"
+        self.pybind_path = Path(__file__).resolve().parent / "libs" / "pybind11"
 
         self.cmake_lists_path = self.src_path / "CMakeLists.txt"
 
@@ -47,22 +47,22 @@ class CppBase(QObject):
 
     def create_binding_config(self):
         # check if folder exists
-        if not os.path.isdir(self.src_path):
+        if not self.src_path.is_dir():
             self._logger.error("Dir binding not available in project folder '{}'"
                                "".format(os.getcwd()))
             return False
 
-        if not os.path.exists(self.module_inc_path):
+        if not self.module_inc_path.exists():
             self._logger.error("Module '{}' could not found in binding folder"
                                "".format(self.module_inc_path))
             return False
 
-        if not os.path.exists(self.module_inc_path):
+        if not self.module_inc_path.exists():
             self._logger.error("Module '{}' could not found in binding folder"
                                "".format(self.module_inc_path))
             return False
 
-        if not os.path.exists(self.cmake_lists_path):
+        if not self.cmake_lists_path.exists():
             self._logger.warning("No CMakeLists.txt found!")
             self._logger.info("Generating new CMake config.")
             self.create_cmake_lists()
@@ -153,7 +153,7 @@ class CppBase(QObject):
         c_make_lists += "\tset( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} . )\n"
         c_make_lists += "endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )\n\n"
 
-        c_make_lists += "add_subdirectory(\"{}\" pybind11)\n".format(str("%r" % str(self.pybind_path))[1:-1])
+        c_make_lists += "add_subdirectory(\"{}\" pybind11)\n".format(self.pybind_path)
 
         with open(self.cmake_lists_path, "w") as f:
             f.write(c_make_lists)
