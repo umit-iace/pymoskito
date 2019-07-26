@@ -3,6 +3,7 @@ import logging
 import os
 import subprocess
 from pathlib import Path
+from importlib.machinery import SourceFileLoader
 
 from PyQt5.QtCore import QObject
 
@@ -109,7 +110,7 @@ class CppBase(QObject):
             self.module_name, self.module_src_path.as_posix(),
             'binding_' + self.module_name + '.cpp')
 
-        target_config_line = "set_target_properties({} PROPERTIES OUTPUT_NAME \"{}\" SUFFIX \".so\")".format(
+        target_config_line = "set_target_properties({} PROPERTIES OUTPUT_NAME \"{}\" SUFFIX \".pyd\")".format(
             self.module_name,
             self.module_name)
 
@@ -153,15 +154,16 @@ class CppBase(QObject):
         c_make_lists += "\tset( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} . )\n"
         c_make_lists += "endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )\n\n"
 
-        c_make_lists += "add_subdirectory(\"{}\" pybind11)\n".format(self.pybind_path)
+        c_make_lists += "add_subdirectory(\"{}\" pybind11)\n".format(self.pybind_path.as_posix())
 
         with open(self.cmake_lists_path, "w") as f:
             f.write(c_make_lists)
 
     def get_class_from_module(self):
         try:
-            spec = importlib.util.spec_from_file_location(self.module_name,
-                                                          self.src_path / str(self.module_name + '.so'))
+            module_path = self.src_path / str(self.module_name + '.pyd')
+
+            spec = importlib.util.spec_from_file_location(self.module_name, module_path)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
             return module
