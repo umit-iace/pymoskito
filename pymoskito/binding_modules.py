@@ -110,9 +110,14 @@ class CppBase(QObject):
             self.module_name, self.module_src_path.as_posix(),
             'binding_' + self.module_name + '.cpp')
 
-        target_config_line = "set_target_properties({} PROPERTIES OUTPUT_NAME \"{}\" SUFFIX \".pyd\")".format(
-            self.module_name,
-            self.module_name)
+        if os.name == 'nt':
+            target_config_line = "set_target_properties({} PROPERTIES OUTPUT_NAME \"{}\" SUFFIX \".pyd\")".format(
+                self.module_name,
+                self.module_name)
+        else:
+            target_config_line = "set_target_properties({} PROPERTIES OUTPUT_NAME \"{}\" SUFFIX \".so\")".format(
+                self.module_name,
+                self.module_name)
 
         with open(self.cmake_lists_path, "r") as f:
             if config_line in f.read():
@@ -161,7 +166,10 @@ class CppBase(QObject):
 
     def get_class_from_module(self):
         try:
-            module_path = self.src_path / str(self.module_name + '.pyd')
+            if os.name == 'nt':
+                module_path = self.src_path / str(self.module_name + '.pyd')
+            else:
+                module_path = self.src_path / str(self.module_name + '.so')
 
             spec = importlib.util.spec_from_file_location(self.module_name, module_path)
             module = importlib.util.module_from_spec(spec)
