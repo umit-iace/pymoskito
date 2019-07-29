@@ -2,6 +2,8 @@ import importlib.util
 import logging
 import os
 import subprocess
+from pathlib import Path
+from importlib.machinery import SourceFileLoader
 
 from PyQt5.QtCore import QObject
 
@@ -29,41 +31,39 @@ class CppBase(QObject):
         if module_path is None:
             raise BindingException("Instantiation of binding class without"
                                    " module_path is not allowed!")
-        self.module_path = module_path
+        self.module_path = Path(module_path)
 
-        self.src_path = os.path.join(os.path.dirname(self.module_path),
-                                     "binding")
-        self.module_inc_path = os.path.join(self.module_path,
-                                            self.module_name + ".h")
-        self.module_src_path = os.path.join(self.module_path,
-                                            self.module_name + ".cpp")
+        self.src_path = self.module_path / "binding"
 
-        self.pybind_path = os.path.join(os.path.dirname(__file__),
-                                        "libs",
-                                        "pybind11")
-        self.cmake_lists_path = os.path.join(self.src_path, 'CMakeLists.txt')
+        self.module_inc_path = self.module_path / str(self.module_name + ".h")
+
+        self.module_src_path = self.module_path / str(self.module_name + '.cpp')
+
+        self.pybind_path = Path(__file__).resolve().parent / "libs" / "pybind11"
+
+        self.cmake_lists_path = self.src_path / "CMakeLists.txt"
 
         if self.create_binding_config():
             self.build_binding()
 
     def create_binding_config(self):
         # check if folder exists
-        if not os.path.isdir(self.src_path):
+        if not self.src_path.is_dir():
             self._logger.error("Dir binding not available in project folder '{}'"
                                "".format(os.getcwd()))
             return False
 
-        if not os.path.exists(self.module_inc_path):
+        if not self.module_inc_path.exists():
             self._logger.error("Module '{}' could not found in binding folder"
                                "".format(self.module_inc_path))
             return False
 
-        if not os.path.exists(self.module_inc_path):
+        if not self.module_inc_path.exists():
             self._logger.error("Module '{}' could not found in binding folder"
                                "".format(self.module_inc_path))
             return False
 
-        if not os.path.exists(self.cmake_lists_path):
+        if not self.cmake_lists_path.exists():
             self._logger.warning("No CMakeLists.txt found!")
             self._logger.info("Generating new CMake config.")
             self.create_cmake_lists()
@@ -107,13 +107,17 @@ class CppBase(QObject):
             rerun.
         """
         config_line = "pybind11_add_module({} {} {})".format(
-            self.module_name,
-            self.module_src_path,
+            self.module_name, self.module_src_path.as_posix(),
             'binding_' + self.module_name + '.cpp')
 
-        target_config_line = "set_target_properties({} PROPERTIES OUTPUT_NAME \"{}\" SUFFIX \".so\")".format(
-            self.module_name,
-            self.module_name)
+        if os.name == 'nt':
+            target_config_line = "set_target_properties({} PROPERTIES OUTPUT_NAME \"{}\" SUFFIX \".pyd\")".format(
+                self.module_name,
+                self.module_name)
+        else:
+            target_config_line = "set_target_properties({} PROPERTIES OUTPUT_NAME \"{}\" SUFFIX \".so\")".format(
+                self.module_name,
+                self.module_name)
 
         with open(self.cmake_lists_path, "r") as f:
             if config_line in f.read():
@@ -155,15 +159,19 @@ class CppBase(QObject):
         c_make_lists += "\tset( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} . )\n"
         c_make_lists += "endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )\n\n"
 
-        c_make_lists += "add_subdirectory({} pybind11)\n".format(self.pybind_path)
+        c_make_lists += "add_subdirectory(\"{}\" pybind11)\n".format(self.pybind_path.as_posix())
 
         with open(self.cmake_lists_path, "w") as f:
             f.write(c_make_lists)
 
     def get_class_from_module(self):
         try:
-            spec = importlib.util.spec_from_file_location(self.module_name,
-                                                          os.path.join(self.src_path, self.module_name + '.so'))
+            if os.name == 'nt':
+                module_path = self.src_path / str(self.module_name + '.pyd')
+            else:
+                module_path = self.src_path / str(self.module_name + '.so')
+
+            spec = importlib.util.spec_from_file_location(self.module_name, module_path)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
             return module
