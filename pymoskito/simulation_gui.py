@@ -112,7 +112,6 @@ class SimulationGui(QMainWindow):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         # Create Simulation Backend
-        self.guiProgress = None
         self.cmdProgress = None
         self.sim = SimulatorInteractor(self)
         self.runSimulation.connect(self.sim.run_simulation)
@@ -509,6 +508,9 @@ class SimulationGui(QMainWindow):
         # status bar
         self.status = QStatusBar(self)
         self.setStatusBar(self.status)
+        self.guiProgress = QProgressBar(self)
+        self.guiProgress.setVisible(False)
+        self.statusBar().addPermanentWidget(self.guiProgress)
         self.statusLabel = QLabel("Ready.")
         self.statusBar().addPermanentWidget(self.statusLabel)
         self.timeLabel = QLabel("t=0.0")
@@ -542,6 +544,7 @@ class SimulationGui(QMainWindow):
         toplevelitem.setExpanded(1)
 
         for index in range(self.dataPointTreeWidget.topLevelItemCount()):
+            self.dataPointTreeWidget.topLevelItem(index).setSelected(False)
             for childIndex in range(self.dataPointTreeWidget.topLevelItem(index).childCount()):
                 self.dataPointTreeWidget.topLevelItem(index).child(childIndex).setSelected(False)
         toplevelitem.setSelected(True)
@@ -844,10 +847,9 @@ class SimulationGui(QMainWindow):
 
         if not self.runningBatch:
             self.actSimulateAll.setDisabled(True)
-
-        self.guiProgress = QProgressBar(self)
         self.sim.simulationProgressChanged.connect(self.guiProgress.setValue)
-        self.statusBar().addWidget(self.guiProgress)
+        self.guiProgress.setValue(0)
+        self.guiProgress.setVisible(True)
         self.runSimulation.emit()
 
     @pyqtSlot()
@@ -1126,7 +1128,7 @@ class SimulationGui(QMainWindow):
         self.timeSlider.setDisabled(False)
 
         self.sim.simulationProgressChanged.disconnect(self.guiProgress.setValue)
-        self.statusBar().removeWidget(self.guiProgress)
+        self.guiProgress.setVisible(False)
 
         self.stop_animation()
 
